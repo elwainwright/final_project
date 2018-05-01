@@ -2,7 +2,7 @@ import pandas
 import keras
 import numpy
 from keras.models import Sequential
-from keras.layers import Embedding, LSTM, Dense, Dropout
+from keras.layers import Embedding, LSTM, Dense, Dropout, Conv1D, GlobalMaxPooling1D
 from sklearn.metrics import jaccard_similarity_score
 from keras import regularizers
 
@@ -88,14 +88,17 @@ xtrain=numpy.asarray(xtrain)
 xdev=numpy.asarray(xdev)
 
 """Create model."""
+numpy.random.seed(5)
 model=Sequential()
-model.add(Embedding(len(vocab.keys())+1, 20))
-model.add(LSTM(10, activation="sigmoid", kernel_regularizer=regularizers.l2(0.05)))
-model.add(Dense(10, activation="sigmoid"))
-model.add(Dropout(0.1))
+model.add(Embedding(len(vocab.keys())+1, 200))
+model.add(Conv1D(10, 2, activation="sigmoid", kernel_regularizer=regularizers.l2(0.05)))
+model.add(GlobalMaxPooling1D())
+model.add(Dense(50, activation="sigmoid"))
+model.add(Dense(50, activation="sigmoid"))
+model.add(Dense(50, activation="sigmoid"))
 model.add(Dense(11, activation="sigmoid"))
-model.compile(loss="binary_crossentropy", optimizer="sgd")
-model.fit(xtrain, ytrain)
+model.compile(loss="binary_crossentropy", optimizer="rmsprop")
+model.fit(xtrain, ytrain, epochs=5)
 
 """Evaluate model."""
 predictions=model.predict(xdev)
@@ -105,8 +108,13 @@ rounded=[]
 for i in range(len(predictions)):
     rounded.append([])
     for emotion in predictions[i]:
-        rounded[i].append(int(round(emotion)))
+        if emotion<=0.3:
+            rounded[i].append(0)
+        else:
+            rounded[i].append(1)
 rounded=numpy.asarray(rounded)
+#print(jaccard_similarity_score(ydev, rounded))
+
 labels=["ID", "Tweet", "anger", "anticipation", "disgust", "fear", "joy", "love", "optimism", "pessimism", "sadness", "surprise", "trust"]
 info=[]
 for i in range(len(id_tweets)):
